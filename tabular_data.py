@@ -38,12 +38,17 @@ def set_default_feature_values(dataframe: pd.DataFrame) -> pd.DataFrame:
         dataframe.loc[:, column] = dataframe[column].fillna(1)
     return dataframe
 
-def clean_tabular_data(dataframe: pd.DataFrame, column: str):
+def clean_tabular_data(dataframe: pd.DataFrame, column: str) -> pd.DataFrame:
     dataframe = remove_rows_with_missing_ratings(dataframe)
     dataframe = combine_description_strings(dataframe = dataframe, column = 'Description')
     dataframe = set_default_feature_values(dataframe)
     return dataframe
-    
+
+def load_airbnb(dataframe: pd.DataFrame, label: str) -> tuple:
+    dataframe = dataframe.select_dtypes(exclude = ['object'])
+    prediction = dataframe[label]
+    return tuple([dataframe.drop(labels = label), prediction])
+        
 
 if __name__ == '__main__':
     df = pd.read_csv('data\\AirBnbData.csv')
