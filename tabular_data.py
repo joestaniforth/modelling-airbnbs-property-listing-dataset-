@@ -11,7 +11,11 @@ def combine_description_strings(dataframe: pd.DataFrame, column:str) -> pd.DataF
     for description in list_of_descriptions:
         description_list = string_to_list(description)
         description_string = ''.join(map(str, description_list))
-        description_string = description_string.replace("'About this space',", '').replace('  ', ' ').replace('"', '').replace("'", '').lstrip(' ')
+        description_string = description_string.replace("'About this space',", ''
+        ).replace('  ', ' '
+        ).replace('"', ''
+        ).replace("'", ''
+        ).lstrip(' ')
         clean_descriptions.append(description_string)
     dataframe.loc[:, column] = clean_descriptions
     return dataframe
