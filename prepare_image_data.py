@@ -18,12 +18,14 @@ def download_images(bucket:str, uuid_list:list) -> None:
         if not os.path.isdir(f'data\\images\\{folder_name}'):
             os.mkdir(f'data\\images\\{folder_name}')
         response = requests.get(f'https://{bucket}.s3.amazonaws.com/{key}')
-        with open(f'data\\images\\{folder_name}\\{file}', 'wb') as file:
+        with open(f'data\\images\\{folder_name}\\{file_name}', 'wb') as file:
             file.write(response.content)
     # if not
     for key in file_list:
+        folder_name = key.split('/')[2]
+        file_name = key.split('/')[3]
+        s3.download_file(bucket,key,f'data\\images\\{folder_name}\\{file_name}')
         
-        pass
 
 
 if __name__ == '__main__':
