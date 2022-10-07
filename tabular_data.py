@@ -46,9 +46,7 @@ def clean_tabular_data(dataframe: pd.DataFrame, column: str) -> pd.DataFrame:
 
 def load_airbnb(dataframe: pd.DataFrame, label: str) -> tuple:
     dataframe = dataframe.select_dtypes(exclude = ['object'])
-    prediction = dataframe[label]
-    return tuple([dataframe.drop(labels = label), prediction])
-        
+    return tuple([dataframe.drop([label], axis = 1), dataframe[label].to_list()])        
 
 if __name__ == '__main__':
     df = pd.read_csv('data\\AirBnbData.csv')
