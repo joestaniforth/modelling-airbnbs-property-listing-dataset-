@@ -6,11 +6,14 @@ from sklearn.model_selection import GridSearchCV
 import pandas as pd
 import numpy as np
 import itertools
+from os.path import join
+import json
+import joblib
 
 hyperparameters = {
-    #'alpha': np.arange(0.0001, 0.001, 0.00015),
-    #'epsilon': np.arange(0.1, 0.5, 0.05),
-    #'eta0': np.arange(0.01, 0.05, 0.005),
+    'alpha': np.arange(0.0001, 0.001, 0.00015),
+    'epsilon': np.arange(0.1, 0.5, 0.05),
+    'eta0': np.arange(0.01, 0.05, 0.005),
     'penalty':['l2', 'l1', 'elasticnet'],
     'power_t': np.arange(0.25, 2, 0.25),
     'max_iter': np.arange(1000, 10000, 500)
@@ -64,7 +67,7 @@ def r2(targets, predicted):
     return 1 - (np.square(RMSE(targets, predicted))/np.var(targets))
 
 if __name__ == '__main__':
-    df = pd.read_csv('data\\clean_tabular_data.csv')
+    df = pd.read_csv(join('data', 'clean_tabular_data.csv'))
     data = load_airbnb(df, 'Price_Night')
     X_train, X_test, y_train, y_test = train_test_split(data[0], data[1], test_size = 0.3)
     X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size = 0.5)
@@ -78,7 +81,9 @@ if __name__ == '__main__':
         y_test = y_test,
         y_valid = y_valid
     )
-    #opt_params = tune_regression_model_hyperparameters(SGDRegressor, hyperparameters, X_train, y_train)
-    #for k, v in zip(opt_params[0], opt_params[1]):
-    #    print(k, v)
-    print(data[0], data[1], data[2])
+    with open('/home/ec2-user/ml/model.joblib', 'wb') as file:
+        joblib.dump(data[0], file)
+    with open('/home/ec2-user/ml/parameters.json', 'w') as file:
+        json.dump(data[1], file)
+    with open('/home/ec2-user/ml/metrics.josn', 'w') as file:
+        json.dump(data[2], file)
