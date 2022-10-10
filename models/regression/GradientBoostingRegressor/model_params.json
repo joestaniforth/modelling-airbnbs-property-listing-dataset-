@@ -1,0 +1,1 @@
+{"loss": "huber", "learning_rate": 0.060000000000000005, "subsample": 0.6, "criterion": "friedman_mse"}

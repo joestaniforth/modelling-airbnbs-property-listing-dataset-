@@ -1,1 +1,1 @@
-{"criterion": "absolute_error", "min_samples_split": 7, "min_samples_leaf": 5, "min_weight_fraction_leaf": 0.05}
+{"criterion": "absolute_error", "min_samples_split": 6, "min_samples_leaf": 3, "min_weight_fraction_leaf": 0.0}

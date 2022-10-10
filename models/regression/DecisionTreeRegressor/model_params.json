@@ -1,1 +1,1 @@
-{"criterion": "poisson", "min_samples_split": 9, "min_samples_leaf": 2, "min_weight_fraction_leaf": 0.0}
+{"criterion": "squared_error", "min_samples_split": 2, "min_samples_leaf": 1, "min_weight_fraction_leaf": 0.05}
