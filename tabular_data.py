@@ -46,7 +46,9 @@ def clean_tabular_data(dataframe: pd.DataFrame, column: str) -> pd.DataFrame:
 
 def load_airbnb(dataframe: pd.DataFrame, label: str) -> tuple:
     dataframe = dataframe.select_dtypes(exclude = ['object'])
-    return dataframe.drop([label], axis = 1), dataframe[label].to_list()      
+    target_list = dataframe[label].to_list()  
+    dropped_dataframe = dataframe.drop([label], axis = 1)
+    return dropped_dataframe, target_list      
 
 if __name__ == '__main__':
     df = pd.read_csv('data\\AirBnbData.csv')
