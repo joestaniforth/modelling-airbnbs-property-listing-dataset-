@@ -1,10 +1,11 @@
-from pyexpat import model
 from tabular_data import load_airbnb
+from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, recall_score, precision_score, plot_confusion_matrix
 import pandas as pd
 import numpy as np
 import itertools
@@ -75,7 +76,7 @@ def custom_tune_regression_model_hyperparameters(
             bar.next()
     test_y_pred = optimal_model.predict(X_test)
     metrics_dict = {
-        'RMSE': mean_squared_error(y_test, test_y_pred, squared = False),
+        'Validation RMSE': mean_squared_error(y_test, test_y_pred, squared = False),
         'r2': r2_score(y_test, test_y_pred)
     }
     figure = px.scatter(x = y_test, y = test_y_pred)
@@ -106,7 +107,8 @@ def find_best_model(model_type, evaluate_by):
     eval_metric = float()
     eval_dict = dict()
     for directory in model_directories:
-        metrics = json.load(os.path.join('models', model_type, directory, 'model_metrics.json'))
+        with open(os.path.join('models', model_type, directory, 'model_metrics.json'), 'r') as model_metrics:
+            metrics = json.load(model_metrics)
         if evaluate_by == 'R Squared' and metrics['R Squared'] > eval_metric:
             eval_metric = metrics['R Squared']
         elif eval_metric == 0:
@@ -115,18 +117,36 @@ def find_best_model(model_type, evaluate_by):
             eval_metric = metrics[evaluate_by]
         eval_dict.update({directory: eval_metric})
     if evaluate_by == 'R Squared':
-        best_model = min(eval_dict, key = eval_dict.get)
-    else:
         best_model = max(eval_dict, key = eval_dict.get)
-    model = joblib.load(os.path.join('models', model_type, best_model, 'model.joblib'))
-    metrics_dict = json.load(os.path.join('models', model_type, best_model, 'model_metrics.json'))
-    model_params = json.load(os.path.join('models', model_type, best_model, 'model_params.json'))
+    else:
+        best_model = min(eval_dict, key = eval_dict.get)
+    with open(os.path.join('models', model_type, best_model, 'model.joblib'), 'rb') as model_file:
+        model = joblib.load(model_file)
+    with open(os.path.join('models', model_type, best_model, 'model_metrics.json'), 'r') as metrics_json:
+        metrics_dict = json.load(metrics_json)
+    with open(os.path.join('models', model_type, best_model, 'model_params.json'), 'r') as params_json:
+        model_params = json.load(params_json)
     return model, metrics_dict, model_params
+
 
 if __name__ == '__main__':
     df = pd.read_csv(os.path.join('data', 'clean_tabular_data.csv'))
-    X, y = load_airbnb(df, 'Price_Night')
-    model_list = [DecisionTreeRegressor, RandomForestRegressor, GradientBoostingRegressor, xgb.XGBRegressor]
-    evaluate_all_models(model_list, X, y)
-    model_bundle = find_best_model('regression', 'R Squared')
-    print(model_bundle[1], model_bundle[2])
+    X, y = load_airbnb(df, 'Category')
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
+    model = LogisticRegression()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    metrics_dict = {
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'Precison': precision_score(y_test, y_pred, average = 'weighted'),
+        'Recall': recall_score(y_test, y_pred, average = 'weighted'),
+        'f1': (2*(precision_score(y_test, y_pred, average = 'weighted') * recall_score(y_test, y_pred, average = 'weighted'))
+                /(precision_score(y_test, y_pred, average = 'weighted') + recall_score(y_test, y_pred, average = 'weighted')))
+    }
+    print(metrics_dict)
+    for p, t in zip(y_pred, y_test):
+        print(p, t)
+    #model_list = [DecisionTreeRegressor, RandomForestRegressor, GradientBoostingRegressor, xgb.XGBRegressor]
+    #evaluate_all_models(model_list, X, y)
+    #model_bundle = find_best_model('regression', 'RMSE')
+    #print(model_bundle[1], model_bundle[2])

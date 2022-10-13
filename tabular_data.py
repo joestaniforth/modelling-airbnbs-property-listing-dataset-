@@ -45,11 +45,14 @@ def clean_tabular_data(dataframe: pd.DataFrame, column: str) -> pd.DataFrame:
     return dataframe
 
 def load_airbnb(dataframe: pd.DataFrame, label: str) -> tuple:
-    dataframe = dataframe.select_dtypes(exclude = ['object'])
     target_list = dataframe[label].to_list()  
-    dropped_dataframe = dataframe.drop([label], axis = 1)
-    return dropped_dataframe, target_list      
-
+    dataframe = dataframe.select_dtypes(exclude = ['object'])
+    try:  
+        dropped_dataframe = dataframe.drop([label], axis = 1)
+        return dropped_dataframe, target_list  
+    except KeyError:
+        return dataframe, target_list
+  
 if __name__ == '__main__':
     df = pd.read_csv('data\\AirBnbData.csv')
     df = clean_tabular_data(df, column = 'Description')
