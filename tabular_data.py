@@ -53,6 +53,9 @@ def load_airbnb(dataframe: pd.DataFrame, label: str) -> tuple:
     except KeyError:
         return dataframe, target_list
   
+def variance_selection(dataframe):
+    return dataframe.drop(columns = ['Cleanliness_rate', 'Accuracy_rate', 'Communication_rate', 'Location_rate', 'Check-in_rate'], axis = 1)
+
 if __name__ == '__main__':
     df = pd.read_csv('data\\AirBnbData.csv')
     df = clean_tabular_data(df, column = 'Description')

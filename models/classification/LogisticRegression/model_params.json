@@ -1,1 +1,1 @@
-{"C": 0.2, "penalty": "l2", "solver": "saga"}
+{"C": 1.0, "penalty": "l2", "solver": "newton-cg"}

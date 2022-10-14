@@ -1,0 +1,1 @@
+{"criterion": "mse", "learning_rate": 0.1, "n_estimators": 500.0, "subsample": 0.4}
