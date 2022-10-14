@@ -24,51 +24,14 @@ def tune_classification_model_hyperparameters(model_class, X_train, y_train):
     clf.fit(X_train, y_train)
     return clf
 
-def tune_classification_model_hyperparameters(model_class, X_train, y_train):
+def tune_classification_model_hyperparameters(model_class, X_train, y_train, param_grid):
     model = model_class()
-    param_grid = {    
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-        }
-    param_grid_2 = {    
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-        }
-    param_grid_3 = {    
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-        }
-    try:
-        clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid,
-        refit = 'accuracy'
-        )
-        clf.fit(X_train, y_train)
-    except ValueError:
-        clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid_2,
-        refit = 'accuracy'
-        )
-        clf.fit(X_train, y_train)
-    except ValueError:
-        clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid_3,
-        refit = 'accuracy'
-        )
-        clf.fit(X_train, y_train)
-    return clf
+    class_name = model.__class__.__name__
+    clf = GridSearchCV(
+        model, 
+        cv = 10, 
+        scoring = ['r2', 'neg_root_mean_squared_error'], 
+        param_grid = param_grid, 
+        refit = 'r2')
+    clf.fit(X_train, y_train)
+    return clf, clf.best_params_, clf.best_score_, class_name

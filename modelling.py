@@ -16,6 +16,7 @@ import plotly.express as px
 from progress.bar import ChargingBar
 import xgboost as xgb
 from regression import tune_regression_model_hyperparameters
+from classification import tune_classification_model_hyperparameters
         
 def evaluate_all_models(model_classes: list, X: pd.DataFrame, y:list, task_folder):
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size= 0.75)
@@ -88,55 +89,6 @@ def save_model(model, path, y_test, y_pred):
         }
         with open(os.path.join(path, 'model_metrics.json'), 'w') as metrics_file:
             json.dump(metrics_dict, metrics_file)
-    
-def tune_classification_model_hyperparameters(model_class, X_train, y_train):
-    model = model_class()
-    param_grid = {    
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-        }
-    param_grid_2 = {    
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-        }
-    param_grid_3 = {    
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-        }
-    try:
-        clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid,
-        refit = 'accuracy'
-        )
-        clf.fit(X_train, y_train)
-    except ValueError:
-        clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid_2,
-        refit = 'accuracy'
-        )
-        clf.fit(X_train, y_train)
-    except ValueError:
-        clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid_3,
-        refit = 'accuracy'
-        )
-        clf.fit(X_train, y_train)
-    return clf
 
 if __name__ == '__main__':
     df = pd.read_csv(os.path.join('data', 'clean_tabular_data.csv'))

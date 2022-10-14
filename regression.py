@@ -16,37 +16,16 @@ import plotly.express as px
 from progress.bar import ChargingBar
 import xgboost as xgb
 
-def tune_regression_model_hyperparameters(model_class, X_train : pd.DataFrame, y_train : list):
+def tune_regression_model_hyperparameters(model_class, X_train : pd.DataFrame, y_train : list, param_grid):
     model = model_class()
     class_name = model.__class__.__name__
-    param_grid_1 = {
-        'learning_rate': [0.05, 0.1, 0.15],
-        'max_depth': [3, 5, 7, 9],
-        'gamma': [0, 0.1, 0.2],
-        'min_child_weight': [3, 5, 7],
-        'n_estimators': [100, 250, 500]
-        }
-    param_grid_2 = {
-        'max_depth': [5, 7, 9],
-        'min_samples_split': [2, 5, 7],
-        'min_weight_fraction_leaf': [0, 0.25, 0.5]
-        }
-    try:
-        rgr = GridSearchCV(
-            model, 
-            cv = 10, 
-            scoring = ['r2', 'neg_root_mean_squared_error'], 
-            param_grid = param_grid_1, 
-            refit = 'r2')
-        rgr.fit(X_train, y_train)
-    except ValueError as e:
-        rgr = GridSearchCV(
-            model, 
-            cv = 10, 
-            scoring = ['r2', 'neg_root_mean_squared_error'], 
-            param_grid = param_grid_2, 
-            refit = 'r2')
-        rgr.fit(X_train, y_train)
+    rgr = GridSearchCV(
+        model, 
+        cv = 10, 
+        scoring = ['r2', 'neg_root_mean_squared_error'], 
+        param_grid = param_grid, 
+        refit = 'r2')
+    rgr.fit(X_train, y_train)
     return rgr, rgr.best_params_, rgr.best_score_, class_name
 
 def custom_tune_regression_model_hyperparameters(
