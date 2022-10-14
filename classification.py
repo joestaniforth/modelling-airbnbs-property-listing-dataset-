@@ -6,32 +6,14 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-def tune_classification_model_hyperparameters(model_class, X_train, y_train):
-    model = model_class()
-    param_grid = {
-        'solver': ['saga', 'lbfgs', 'sag', 'newton-cg'],
-        'penalty': ['l2'],
-        'C': np.arange(0.2, 1.2, 0.2),
-        'max_iter': [10000]
-    }
-    clf = GridSearchCV(
-        model,
-        cv = 10,
-        scoring = 'accuracy',
-        param_grid = param_grid,
-        refit = 'accuracy'
-    )
-    clf.fit(X_train, y_train)
-    return clf
-
 def tune_classification_model_hyperparameters(model_class, X_train, y_train, param_grid):
     model = model_class()
     class_name = model.__class__.__name__
     clf = GridSearchCV(
         model, 
         cv = 10, 
-        scoring = ['r2', 'neg_root_mean_squared_error'], 
+        scoring = ['accuracy'], 
         param_grid = param_grid, 
-        refit = 'r2')
+        refit = 'accuracy')
     clf.fit(X_train, y_train)
     return clf, clf.best_params_, clf.best_score_, class_name
