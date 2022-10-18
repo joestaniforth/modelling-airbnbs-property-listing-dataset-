@@ -4,5 +4,5 @@ services:
   ml_tuning:
     image: tuning:latest
     volumes:
-      - /home/ec2-user:/home
+      - /home/ec2-user:/usr/app/ml/airbnb
     

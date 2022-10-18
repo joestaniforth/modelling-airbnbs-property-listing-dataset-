@@ -1,89 +1,80 @@
 from tabular_data import load_airbnb
-from sklearn.linear_model import SGDRegressor
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, recall_score, precision_score, plot_confusion_matrix
 import pandas as pd
 import numpy as np
-import itertools
-from os.path import join
 import json
+import os
 import joblib
-
-hyperparameters = {
-    'alpha': np.arange(0.0001, 0.001, 0.00015),
-    'epsilon': np.arange(0.1, 0.5, 0.05),
-    'eta0': np.arange(0.01, 0.05, 0.005),
-    'penalty':['l2', 'l1', 'elasticnet'],
-    'power_t': np.arange(0.25, 2, 0.25),
-    'max_iter': np.arange(1000, 10000, 500)
-}
-
-def tune_regression_model_hyperparameters(model_class, params,
-    X_train : pd.DataFrame, 
-    y_train : list):
-    model = model_class()
-    rgr = GridSearchCV(model, params)
-    rgr.fit(X_train, y_train)
-    return sorted(rgr.cv_results_.keys), (rgr.cv_results_.values)
-
-
-def custom_tune_regression_model_hyperparameters(
-    model_class, parameters: dict,
-    X_train : pd.DataFrame, X_test : pd.DataFrame, X_valid : pd.DataFrame, 
-    y_train : list, y_test : list, y_valid : list):
-    params, values = zip(*parameters.items())
-    all_combinations = [dict(zip(params, vals)) for vals in itertools.product(*values)]
-    model_RMSE = float()
-    optimal_dict = dict()
-    optimal_model = None
-    print(f'There are {len(all_combinations)} combinations to evaluate')
-    for combination in all_combinations:
-        model = model_class(**combination)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_valid)
-        if model_RMSE == 0.0:
-            model_RMSE = RMSE(y_valid, y_pred)
-        if RMSE(y_valid, y_pred) < model_RMSE:
-            model_RMSE = RMSE(y_valid, y_pred)
-            optimal_dict = combination
-            optimal_model = model
-    test_y_pred = optimal_model.predict(X_test)
-    metrics_dict = {
-        'RMSE': RMSE(y_test, test_y_pred),
-        'MAE': MAE(y_test, test_y_pred),
-        'r2': r2(y_test, test_y_pred)
-    }
-    return optimal_model, optimal_dict, metrics_dict
+from regression import tune_regression_model_hyperparameters
+from classification import tune_classification_model_hyperparameters
+from models import Models
         
 
-def RMSE(targets, predicted):
-    return np.sqrt(np.mean(np.square(targets - predicted)))
+def evaluate_all_models(model_classes: list, X: pd.DataFrame, y:list, task_folder):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size= 0.8)
+    for key in model_classes:
+        if task_folder == 'regression':
+            opt_model = tune_regression_model_hyperparameters(key, X_train, y_train, param_grid = model_classes[key])
+        elif task_folder == 'classification':
+            opt_model = tune_classification_model_hyperparameters(key, X_train, y_train,param_grid = model_classes[key])
+        save_model(
+            opt_model[0], 
+            path = os.path.join('models', f'{task_folder}', f'{opt_model[3]}'), 
+            y_test = y_test,
+            y_pred = opt_model[0].predict(X_test))
 
-def MAE(targets, predicted):
-    return np.mean(np.abs(targets - predicted))
+def find_best_model(task_directory, evaluate_by):
+    model_directories = os.listdir(os.path.join('models', task_directory))
+    eval_dict = dict()
+    for directory in model_directories:
+        with open(os.path.join('models', task_directory, directory, 'model_metrics.json'), 'r') as model_metrics:
+            metrics = json.load(model_metrics)
+        eval_dict.update({directory: metrics[evaluate_by]})
+    low_metrics = ['RMSE', 'MSE', 'MAE'] #Metrics where lower scores are better
+    if evaluate_by in low_metrics:
+        best_model = min(eval_dict, key = eval_dict.get)
+    else:
+        best_model = max(eval_dict, key = eval_dict.get)
+    with open(os.path.join('models', task_directory, best_model, 'model.joblib'), 'rb') as model_file:
+        model = joblib.load(model_file)
+    with open(os.path.join('models', task_directory, best_model, 'model_metrics.json'), 'r') as metrics_json:
+        metrics_dict = json.load(metrics_json)
+    with open(os.path.join('models', task_directory, best_model, 'model_params.json'), 'r') as params_json:
+        model_params = json.load(params_json)
+    return model, metrics_dict, model_params
 
-def r2(targets, predicted):
-    return 1 - (np.square(RMSE(targets, predicted))/np.var(targets))
+def save_model(model, path, y_test, y_pred):
+    os.makedirs(path, exist_ok = True)
+    with open(os.path.join(path, 'model.joblib'), 'wb') as model_file:
+        joblib.dump(model, model_file)
+    with open(os.path.join(path, 'model_params.json'), 'w') as params_file:
+        params = {k:v if type(v) == str else float(v) for k, v in model.best_params_.items()}
+        json.dump(params, params_file)
+    if 'regression' in path:
+        metrics_dict = {
+            'RMSE': mean_squared_error(y_test, y_pred, squared = False),
+            'MSE' : mean_squared_error(y_test, y_pred),
+            'R Squared': r2_score(y_test, y_pred)
+        }
+        with open(os.path.join(path, 'model_metrics.json'), 'w') as metrics_file:
+            json.dump(metrics_dict, metrics_file)
+    elif 'classification' in path:
+        metrics_dict = {
+        'Accuracy': accuracy_score(y_test, y_pred),
+        'Precison': precision_score(y_test, y_pred, average = 'weighted'),
+        'Recall': recall_score(y_test, y_pred, average = 'weighted'),
+        'f1': (2*(precision_score(y_test, y_pred, average = 'weighted') * recall_score(y_test, y_pred, average = 'weighted'))
+                /(precision_score(y_test, y_pred, average = 'weighted') + recall_score(y_test, y_pred, average = 'weighted')))
+        }
+        with open(os.path.join(path, 'model_metrics.json'), 'w') as metrics_file:
+            json.dump(metrics_dict, metrics_file)
 
 if __name__ == '__main__':
-    df = pd.read_csv(join('data', 'clean_tabular_data.csv'))
-    data = load_airbnb(df, 'Price_Night')
-    X_train, X_test, y_train, y_test = train_test_split(data[0], data[1], test_size = 0.3)
-    X_test, X_valid, y_test, y_valid = train_test_split(X_test, y_test, test_size = 0.5)
-    data = custom_tune_regression_model_hyperparameters(
-        model_class = SGDRegressor,
-        parameters = hyperparameters,
-        X_train = X_train,
-        X_test = X_test,
-        X_valid = X_valid,
-        y_train = y_train,
-        y_test = y_test,
-        y_valid = y_valid
-    )
-    with open('/home/ec2-user/ml/model.joblib', 'wb') as file:
-        joblib.dump(data[0], file)
-    with open('/home/ec2-user/ml/parameters.json', 'w') as file:
-        json.dump(data[1], file)
-    with open('/home/ec2-user/ml/metrics.josn', 'w') as file:
-        json.dump(data[2], file)
+    df = pd.read_csv(os.path.join('data', 'clean_tabular_data.csv'))
+    X, y = load_airbnb(df, 'Category')
+    param_set = Models()
+    evaluate_all_models(model_classes = param_set.classifier_params, X = X, y = y, task_folder = 'classification')
+    evaluate_all_models(model_classes = param_set.regressor_params, X = X, y = y, task_folder = 'regression')

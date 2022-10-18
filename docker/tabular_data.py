@@ -45,8 +45,16 @@ def clean_tabular_data(dataframe: pd.DataFrame, column: str) -> pd.DataFrame:
     return dataframe
 
 def load_airbnb(dataframe: pd.DataFrame, label: str) -> tuple:
+    target_list = dataframe[label].to_list()  
     dataframe = dataframe.select_dtypes(exclude = ['object'])
-    return dataframe.drop([label], axis = 1), dataframe[label].to_list()      
+    try:  
+        dropped_dataframe = dataframe.drop([label], axis = 1)
+        return dropped_dataframe, target_list  
+    except KeyError:
+        return dataframe, target_list
+  
+def variance_selection(dataframe):
+    return dataframe.drop(columns = ['Cleanliness_rate', 'Accuracy_rate', 'Communication_rate', 'Location_rate', 'Check-in_rate'], axis = 1)
 
 if __name__ == '__main__':
     df = pd.read_csv('data\\AirBnbData.csv')
