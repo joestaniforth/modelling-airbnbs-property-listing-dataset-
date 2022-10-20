@@ -5,8 +5,8 @@ from sklearn.model_selection import train_test_split
 from tabular_data import load_airbnb
 from time import time
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 import itertools
-import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -41,6 +41,7 @@ class neural_net(torch.nn.Module):
         return self.layers(features)
 
 def train(model, config: dict, training_loader):
+    writer = SummaryWriter()
     optimiser = config['optimiser'](params = model.parameters(), lr = config['learning_rate'])
     start_time = time()
     for epoch in range(config['epochs']):
@@ -49,12 +50,15 @@ def train(model, config: dict, training_loader):
             y_pred = model(X_train)
             unsq_y_train = y_train.unsqueeze(1)
             loss = F.mse_loss(y_pred, unsq_y_train)
+            writer.add_scalar(tag = 'MSE_loss', scalar_value = loss, global_step = epoch)
             loss.backward()
             optimiser.step()
     train_time = time() - start_time
     return train_time
 
 def grid_train(model, config: dict, training_loader, optimiser_algo):
+    writer = SummaryWriter()
+    batch_idx = 0
     optimiser = optimiser_algo(params = model.parameters(), lr = config['learning_rate'])
     start_time = time()
     for epoch in range(config['epochs']):
@@ -63,8 +67,10 @@ def grid_train(model, config: dict, training_loader, optimiser_algo):
             y_pred = model(X_train)
             unsq_y_train = y_train.unsqueeze(1)
             loss = F.mse_loss(y_pred, unsq_y_train)
+            writer.add_scalar(tag = 'MSE_loss', scalar_value = loss.item(), global_step = batch_idx)
             loss.backward()
             optimiser.step()
+            batch_idx += 1
     train_time = time() - start_time
     return train_time
 
@@ -106,7 +112,7 @@ def evaluate_model(model, X_train, X_test, X_valid, y_train, y_test, y_valid, tr
     return metrics_dict
 
 def generate_nn_configs(param_grid_path):
-    grid = get_nn_config('nn_config.yml')
+    grid = get_nn_config(param_grid_path)
     params, values = zip(*grid.items())
     all_combinations = [dict(zip(params, vals)) for vals in itertools.product(*values)]
     return all_combinations
@@ -146,7 +152,7 @@ if __name__ == '__main__':
     param_grid = get_nn_config('nn_config_grid.yml')
     print(param_grid)
     results = optimise_nn_grid(X_train, X_test, X_valid, y_train, y_test, y_valid, param_grid)
-    makedirs(join('models', 'neural_networks', 'regression', 'optimal'))
+    makedirs(join('models', 'neural_networks', 'regression', 'optimal'), exist_ok = True)
     model = neural_net(configs = results[0])
     model.load_state_dict(results[2])
     model.eval()

@@ -1,21 +1,20 @@
-from tabular_data import load_airbnb
+from classification import tune_classification_model_hyperparameters
+from datetime import date, datetime
+from models import Models
+from regression import tune_regression_model_hyperparameters
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.metrics import accuracy_score, recall_score, precision_score, plot_confusion_matrix
-import pandas as pd
-import numpy as np
+from tabular_data import load_airbnb
 import json
-import os
 import joblib
-from regression import tune_regression_model_hyperparameters
-from classification import tune_classification_model_hyperparameters
-from models import Models
-import torch
 import neural_net as nnw
-from torch.utils.data import DataLoader
-from time import time
-from datetime import date, datetime
+import numpy as np
+import os
+import pandas as pd
+import plotly.express as px
+import torch
 
 def evaluate_all_models(model_classes: list, X: pd.DataFrame, y:list, task_folder):
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size= 0.8)
@@ -62,9 +61,9 @@ def save_model(model, path, y_test = None, y_pred = None, nn_metrics_dict:dict =
         os.mkdir(os.path.join(path, f'{strf_now}'))
         with open(os.path.join(path, f'{strf_now}', 'model.pt'), 'wb') as file:
             torch.save(state, file)
-        with open(os.path.join(path, f'{strf_now}', 'model_metrics,json'), 'w') as file:
+        with open(os.path.join(path, f'{strf_now}', 'model_metrics.json'), 'w') as file:
             json.dump(nn_metrics_dict, file)
-        with open(os.path.join(path, f'{strf_now}', 'model_params,json'), 'w') as file:
+        with open(os.path.join(path, f'{strf_now}', 'model_params.json'), 'w') as file:
             params = dict()
             for key, value in nn_params.items():
                 if type(value) == int:
@@ -100,25 +99,23 @@ def save_model(model, path, y_test = None, y_pred = None, nn_metrics_dict:dict =
                 json.dump(metrics_dict, metrics_file)
 
 if __name__ == '__main__':
-    X_train, X_test, X_valid, y_train, y_test, y_valid = nnw.prep_data_for_nn('data\\clean_tabular_data.csv')
-    param_grid = nnw.get_nn_config('nn_config_grid.yml')
-    print(param_grid)
-    results = nnw.optimise_nn_grid(X_train, X_test, X_valid, y_train, y_test, y_valid, param_grid)
-    os.makedirs(os.path.join('models', 'neural_networks', 'regression', 'optimal'))
-    model = nnw.neural_net(configs = results[0])
-    model.load_state_dict(results[2])
+    df = pd.read_csv(os.path.join('data', 'clean_tabular_data.csv'))
+    dfx, dfy = load_airbnb(df, 'Price_Night')
+    X = torch.tensor(dfx.values).float()
+    y = torch.tensor(dfy).float()
+    os.makedirs(os.path.join('models', 'neural_networks', 'regression', 'optimal'), exist_ok = True)
+    configs = nnw.get_nn_config(
+        os.path.join('models', 'neural_networks', 'regression', 'optimal', '20221020_1400', 'model_params.json'))
+    model = nnw.neural_net(configs = configs)
+    state = torch.load(
+        os.path.join('models', 'neural_networks', 'regression', 'optimal', '20221020_1400', 'model.pt'))
+    model.load_state_dict(state)
     model.eval()
-    save_model(
-        model, 
-        'models\\neural_networks\\regression\\optimal', 
-        X_train, 
-        X_test, 
-        X_valid, 
-        y_train, 
-        y_test, 
-        y_valid,
-        results[1], 
-        results[0])
+    y_pred = model(X)
+    y_pred = y_pred.detach().numpy()
+    y = y.detach().numpy()
+    fig = px.scatter(y_pred, y)
+    fig.write_html('nn.html')
     
 
 
