@@ -57,3 +57,11 @@ class Models:
                 'max_depth': range(1, 6)
             }       
         }
+        self.nn_params = {
+            'learning_rate': [0.001, 0.0001, 0.00001, 0.000001, 0.0000001],
+            'hidden_layer_width': [16, 11, 8, 5, 1],
+            'depth': [2],
+            'epochs': [20, 40, 60, 80, 100],
+            'dropout': [0.0, 0.2, 0.3, 0.4, 0.5],
+            'training_batch_size': [32, 64, 128, 256]
+        }
